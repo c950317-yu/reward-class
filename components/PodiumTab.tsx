@@ -1,15 +1,41 @@
 import React, { useMemo, useState } from 'react';
 import { Student } from '../types';
 import { Crown, Medal, Sparkles, Trophy, ClipboardList } from 'lucide-react';
-import { generateClassAnalysis } from '../services/geminiService';
 
 interface PodiumTabProps {
   students: Student[];
 }
 
+// 순수 로컬 로직으로 학급 분석 메시지 생성
+const generateLocalReport = (students: Student[]): string => {
+  if (students.length === 0) return "등록된 학생이 없습니다.";
+
+  const sortedStudents = [...students].sort((a, b) => b.points - a.points);
+  const topStudents = sortedStudents.slice(0, 3);
+  const totalPoints = students.reduce((sum, s) => sum + s.points, 0);
+  const averagePoints = (totalPoints / students.length).toFixed(1);
+  const leaderNames = topStudents.map(s => s.name).join(', ');
+
+  const compliments = [
+    "모두가 서로 격려하며 성장하는 모습이 정말 보기 좋습니다!",
+    "작은 노력들이 모여 큰 성과를 만들고 있어요.",
+    "선의의 경쟁을 통해 함께 발전하는 우리 반이 됩시다.",
+    "결과도 중요하지만, 과정에서 배우는 점들을 잊지 마세요.",
+    "우리 반의 열정이 정말 대단합니다! 이대로 쭉 가볼까요?"
+  ];
+  const randomCompliment = compliments[Math.floor(Math.random() * compliments.length)];
+
+  return `[학급 현황 리포트]
+
+현재 우리 반의 총 상점은 ${totalPoints}점, 평균 점수는 ${averagePoints}점입니다.
+상위권 학생들(${leaderNames})이 아주 훌륭한 모습을 보여주고 있네요! 👏
+
+${randomCompliment}
+모두 조금만 더 힘내서 목표를 향해 달려가 봐요! 화이팅!`;
+};
+
 const PodiumTab: React.FC<PodiumTabProps> = ({ students }) => {
   const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const sortedStudents = useMemo(() => {
     return [...students].sort((a, b) => b.points - a.points);
@@ -22,12 +48,10 @@ const PodiumTab: React.FC<PodiumTabProps> = ({ students }) => {
   const second = topThree[1];
   const third = topThree[2];
 
-  const handleAnalysis = async () => {
-    setLoading(true);
-    setAnalysisMessage(null);
-    const message = await generateClassAnalysis(students);
+  const handleAnalysis = () => {
+    // API 호출 없이 즉시 결과 생성
+    const message = generateLocalReport(students);
     setAnalysisMessage(message);
-    setLoading(false);
   };
 
   if (students.length === 0) {
@@ -47,22 +71,15 @@ const PodiumTab: React.FC<PodiumTabProps> = ({ students }) => {
       <div className="flex justify-end">
         <button
           onClick={handleAnalysis}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 text-sm font-medium"
         >
-          {loading ? (
-            <span className="animate-pulse">분석 중...</span>
-          ) : (
-            <>
-              <ClipboardList size={16} />
-              학급 분석 리포트
-            </>
-          )}
+          <ClipboardList size={16} />
+          학급 분석 리포트 생성
         </button>
       </div>
 
       {analysisMessage && (
-        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 p-6 rounded-2xl relative">
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 p-6 rounded-2xl relative animate-[fadeIn_0.5s_ease-out]">
           <div className="absolute top-0 left-0 -translate-x-3 -translate-y-3 bg-white p-2 rounded-full shadow-sm border border-purple-100">
             <Sparkles className="text-purple-500" size={24} />
           </div>
@@ -143,6 +160,10 @@ const PodiumTab: React.FC<PodiumTabProps> = ({ students }) => {
         @keyframes slideUp {
           from { transform: translateY(100%); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
